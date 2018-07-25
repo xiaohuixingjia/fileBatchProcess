@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+    http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.0.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<!-- 引入配置文件 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="ignoreResourceNotFound" value="false" />
+		<property name="ignoreUnresolvablePlaceholders" value="false" />
+		<property name="locations">
+			<list>
+				<value>classpath:jdbc_redis.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean
+		class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor" />
+
+
+	<bean id="taskHandler"  class="com.umpay.proxyservice.handler.TaskHandler">
+	</bean>
+	
+	<bean id="fileProcessTaskService" class="com.umpay.proxyservice.fileBatch.service.impl.FileProcessTaskRedisServiceImpl"/>
+	
+	
+		<!-- **********************以下为定时器部分****************** -->
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="fileTaskListenerTrigger" />
+				<ref bean="monitorFileTaskListenerTrigger" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- 文件批处理任务执行定时器 start-->
+	<bean id="fileTaskListenerTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="fileTaskListenerDetail" />
+		<property name="cronExpression" value="*/3 * * * * ?" />
+	</bean>
+	<bean id="fileTaskListenerDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="fileTaskProcess" />
+		<property name="targetMethod" value="process" />
+		<property name="concurrent" value="true"/>  
+	</bean>
+	<bean id="fileTaskProcess"
+		class="com.umpay.proxyservice.fileBatch.thread.TaskProcessThread"/>
+	<!-- 文件批处理任务执行定时器  end-->
+
+	<!-- 文件批处理任务监控定时器 start-->
+	<bean id="monitorFileTaskListenerTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="monitorFileTaskListenerDetail" />
+		<property name="cronExpression" value="*/10 * * * * ?" />
+	</bean>
+	<bean id="monitorFileTaskListenerDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="monitorFileTaskProcess" />
+		<property name="targetMethod" value="execute" />
+		<property name="concurrent" value="false"/>  
+	</bean>
+	<bean id="monitorFileTaskProcess"
+		class="com.umpay.proxyservice.fileBatch.thread.MonitorFileTaskThread"/>
+	<!-- 文件批处理任务监控定时器  end-->
+	
+	
+	
+	<!-- spring-redis集成操作开始 -->
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<!-- 最大空闲连接数 -->
+		<property name="maxIdle" value="10" />
+		<!-- 最小空闲连接数 -->
+		<property name="minIdle" value="2" />
+		<!-- 在获取连接的时候检查有效性 -->
+		<property name="testOnBorrow" value="true" />
+		<!-- 在空闲时检查有效性 -->
+		<property name="testWhileIdle" value="true" />
+	</bean>
+
+	<bean id="jedisConnectionFactory"
+		class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+		destroy-method="destroy">
+		<!-- redis服务ip -->
+		<property name="hostName" value="${redisHostName}" />
+		<!-- redis服务端口 -->
+		<property name="port" value="${redisPort}" />
+		<!-- redis服务数据库 0~15可选 -->
+		<property name="database" value="${redisDatabase}" />
+		<!-- redis服务密码 -->
+		<property name="password" value="${redisPassword}" />
+		<!-- redis连接是否使用池技术 -->
+		<property name="usePool" value="true" />
+		<!-- redis超时时间 (毫秒) -->
+		<property name="timeout" value="200" />
+		<!-- redis连接池的配置 -->
+		<property name="poolConfig" ref="jedisPoolConfig" />
+	</bean>
+	<!-- 对string操作的封装 -->
+	<bean id="stringRedisTemplate" class="org.springframework.data.redis.core.StringRedisTemplate">
+		<constructor-arg name="connectionFactory" ref="jedisConnectionFactory" />
+	</bean>
+	<!-- redis连接服务 -->
+	<bean id="redisClient" class="com.umpay.proxyservice.redis.RedisClient">
+		<property name="stringRedisTemplate" ref="stringRedisTemplate"/>
+		<!-- 从redis list中取数据时的阻塞时间 -->
+		<constructor-arg name="backupTime" value="2" />
+		<!-- 从redis list中取数据时的阻塞时间类型  0==毫秒 1==秒; 3==分; 5==时; 7==天; -->
+		<constructor-arg name="backupTimeType" value="2" />
+		<!-- 存入redis的默认时效时间-->
+		<constructor-arg name="cacheTime" value="15" />
+		<!-- 存入redis的默认时效时间类型  0==毫秒 1==秒; 3==分; 5==时; 7==天; -->
+		<constructor-arg name="cacheTimeType" value="7" />
+	</bean>
+	<!-- spring-redis集成操作结束 -->
+</beans>

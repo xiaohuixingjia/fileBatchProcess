@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration scan="true" scanPeriod="5" debug="false">
+
+	<Property name="log.base" value="log/" />
+
+	<!--console -->
+	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>[%date{yyyyMMdd HHmmss SSS}][%-5p][%t][%c{0}] - %m%n
+			</pattern>
+		</encoder>
+	</appender>
+	
+
+	<!-- detail log -->
+	<appender name="detail"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${log.base}detail.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<FileNamePattern>${log.base}detail.%d{yyyy-MM-dd}.log
+			</FileNamePattern>
+		</rollingPolicy>
+		<encoder>
+			<pattern>[%date{yyyyMMdd HHmmss SSS}][%-5p][%t][%c{0}] - %m%n
+			</pattern>
+		</encoder>
+	</appender>
+	<!-- 记录商户请求和响应报文的简要日志 -->
+	<logger name="merReq_and_res_xml" additivity="false">
+		<appender name="merReq_and_res_xml"
+			class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<file>${log.base}merReq_and_res_xml.log</file>
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<FileNamePattern>${log.base}merReq_and_res_xml.%d{yyyy-MM-dd}.log
+				</FileNamePattern>
+			</rollingPolicy>
+			<encoder>
+				<pattern>%m%n</pattern>
+			</encoder>
+		</appender>
+	</logger>
+
+	<!-- 记录访问商户报文和响应报文的简要日志 -->
+	<logger name="reqMer_and_res_xml" additivity="false">
+		<appender name="reqMer_and_res_xml"
+			class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<file>${log.base}reqMer_and_res_xml.log</file>
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<FileNamePattern>${log.base}reqMer_and_res_xml.%d{yyyy-MM-dd}.log
+				</FileNamePattern>
+			</rollingPolicy>
+			<encoder>
+				<pattern>%m%n</pattern>
+			</encoder>
+		</appender>
+	</logger>
+	<!-- 记录请求数据的请求和响应的xml报文 -->
+	<logger name="query_data_simple" additivity="false">
+		<appender name="query_data_simple"
+			class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<file>${log.base}query_data_simple.log</file>
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<FileNamePattern>${log.base}query_data_simple.%d{yyyy-MM-dd}.log
+				</FileNamePattern>
+			</rollingPolicy>
+			<encoder>
+				<pattern>%m%n</pattern>
+			</encoder>
+		</appender>
+	</logger>
+
+	<root level="info">
+		<appender-ref ref="stdout" />
+		<appender-ref ref="detail" />
+	</root>
+
+</configuration>
